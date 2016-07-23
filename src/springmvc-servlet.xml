@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	 									   http://www.springframework.org/schema/beans/spring-beans.xsd
+	 									   http://www.springframework.org/schema/context 
+	 									   http://www.springframework.org/schema/context/spring-context.xsd
+	 									   http://www.springframework.org/schema/mvc 
+	 									   http://www.springframework.org/schema/mvc/spring-mvc.xsd
+	 									   http://www.springframework.org/schema/tx
+       									   http://www.springframework.org/schema/tx/spring-tx.xsd
+       									   http://www.springframework.org/schema/aop 
+                         				   http://www.springframework.org/schema/aop/spring-aop.xsd">
+	<!-- 加载数据库连接资源文件 -->
+	<!-- <context:property-placeholder location="classpath:jdbc.properties" 
+		/> -->
+	<!-- 数据源 -->
+	<bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource">
+		<property name="poolProperties" ref="poolProperties"></property>
+	</bean>
+	<bean id="poolProperties" class="org.apache.tomcat.jdbc.pool.PoolProperties">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://127.0.0.1:3306/clientmanagesystem?useSSL=true" />
+		<property name="username" value="tom" />
+		<property name="password" value="tang0624" />
+	</bean>
+	<!-- 数据源注入Mybatis -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations" value="classpath:com/mick/entity/*.xml" />
+	</bean>
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactory" ref="sqlSessionFactory"></property>
+		<property name="basePackage" value="com.mick.entity"></property>
+	</bean>
+	<!-- 事务配置 -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	<!-- 事务条件声明 -->
+	<tx:advice id="tx" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="delet*" propagation="REQUIRED" />
+			<tx:method name="inser*" propagation="REQUIRED" />
+			<tx:method name="updat*" propagation="REQUIRED" />
+			<tx:method name="fin*" read-only="true" />
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="selec*" read-only="true" />
+			<tx:method name="*" propagation="SUPPORTS" />
+		</tx:attributes>
+	</tx:advice>
+	<!-- 事务攔截器 切点 -->
+	<aop:config>
+		<aop:pointcut id="service" expression="execution(* com.mick.service.*.*(..))" />
+		<aop:advisor pointcut-ref="service" advice-ref="tx" />
+	</aop:config>
+	<!-- JSON -->
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="mappingJackson2HttpMessageConverter" />
+			</list>
+		</property>
+	</bean>
+	<bean id="mappingJackson2HttpMessageConverter"
+		class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/html;charset=UTF-8</value>
+				<value>text/json;charset=UTF-8</value>
+				<value>application/json;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+	<!-- 自動包加载 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<context:component-scan
+		base-package="com.mick.entity,com.mick.action,com.mick.service,com.mick.dao,com.mick.util" />
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+	<mvc:default-servlet-handler />
+	<mvc:annotation-driven />
+	<!-- VIEW配置 -->
+	<bean id="internalResourceViewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.JstlView"></property>
+		<property name="prefix" value="/WEB-INF/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+</beans>
